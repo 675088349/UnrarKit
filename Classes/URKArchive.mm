@@ -1332,6 +1332,16 @@ int CALLBACK AllowCancellationCallbackProc(UINT msg, long UserData, long P1, lon
         *error = nil;
     }
 
+    // 每次重开都检查路径，避免书签解析失败或 UTF-8 转换失败时将空指针传给 strdup。
+    const char *archivePath = rarFile.UTF8String;
+    if (rarFile.length == 0 || archivePath == NULL) {
+        NSString *errorName = nil;
+        [self assignError:error
+                     code:rarFile.length == 0 ? URKErrorCodeOpen : URKErrorCodeStringConversion
+                errorName:&errorName];
+        return NO;
+    }
+
     URKLogDebug("Zeroing out fields...");
     
     ErrHandler.Clean();
@@ -1343,7 +1353,7 @@ int CALLBACK AllowCancellationCallbackProc(UINT msg, long UserData, long P1, lon
 
     URKLogDebug("Setting archive name...");
     
-    self.flags->ArcName = strdup(rarFile.UTF8String);
+    self.flags->ArcName = strdup(archivePath);
     self.flags->OpenMode = (uint)mode;
     self.flags->OpFlags = self.ignoreCRCMismatches ? ROADOF_KEEPBROKEN : 0;
 
